@@ -64,9 +64,9 @@ In a monolithic single process system, making a function call is expected to pre
 Another class of errors are errors introduced when performing input/output(I/O) operations through less stable interfaces such as network cards and harddrives. These interfaces can fail unpredictably for many reasons and are unpredictable in terms of throughput.
 \newline
 \newline
-In a distributed system, unpredictable I/O calls are far more common and unlike a single process system function call, the result of invoking a remote procedure is unknown to the caller until a response is received. This creates an issue because sub-systems only communicate through unreliable messaging.
+In a distributed system, unpredictable I/O calls are far more common and unlike a single process system function call, the result of invoking a remote procedure is unknown to the caller until a response is received. This creates an issue because subsystems only communicate through unreliable messaging.
 \subsection{Synchronous Invocation - Remote Procedure}
-Distributed systems can be built around the idea of remote procedure calls. Subsystems that are run in different processes or machines are treated as software modules that expose methods. In this type of synchronous communication, subsystems are invoking procedures in other sub-systems using less reliable I/O interfaces with the expectation of receiving a result once the procedure completes. This is commonly used if the result or side effect of a procedure is needed immediately after invocation.
+Distributed systems can be built around the idea of remote procedure calls. Subsystems that are run in different processes or machines are treated as software modules that expose methods. In this type of synchronous communication, subsystems are invoking procedures in other subsystems using less reliable I/O interfaces with the expectation of receiving a result once the procedure completes. This is commonly used if the result or side effect of a procedure is needed immediately after invocation.
 \newline
 \newline
 This type of communication requires the calling system to be aware of another system's address and interface which causes tight coupling. Furthermore, invoking a RPC call requires the receiving system to be healthy and able to receive the request. After a RPC is invoked, there are 3 different outcomes the callee can expect.
@@ -74,20 +74,20 @@ This type of communication requires the calling system to be aware of another sy
 \begin{itemize}
 \item The RPC call is received by the target, executed and an expected response ACK is returned.
 \item The RPC call is received by the target, executed and an expected error ACK is returned.
-\item The RPC call fails at some point while sending or receiving data and what occurred in the sub-system is unknown.
+\item The RPC call fails at some point while sending or receiving data and what occurred in the subsystem is unknown.
 \end{itemize}
 
 
 
 \subsection{Asynchronous Messaging}
-Another communication paradigm involves a non-waiting approach where the result of a message is not needed or desired at the time of sending. In this case, a sub-system only needs to know where to send messages, rather than to whom, which decouples the sub-system from other sub-systems. The responsibility of routing or exposing the message is instead handled by a central message broker.
+Another communication paradigm involves a non-waiting approach where the result of a message is not needed or desired at the time of sending. In this case, a subsystem only needs to know where to send messages, rather than to whom, which decouples the subsystem from other subsystems. The responsibility of routing or exposing the message is instead handled by a central message broker.
 \newline
 \newline
-Sub-systems that are interested in messages of a certain type can then consume them from the brooker at a later time without being coupled to the producer of the message. Depending on the message broker delivery system, this design also removes temporal coupling since messages can be produced without requiring an available consumer. Sending a message to a message broker still requires a synchronous invocation if we want to ensure that our message is sent. The overall availability of a system now depends on the health of the message broker instead of every sub-system which is easier to manage.
+Subsystems that are interested in messages of a certain type can then consume them from the brooker at a later time without being coupled to the producer of the message. Depending on the message broker delivery system, this design also removes temporal coupling since messages can be produced without requiring an available consumer. Sending a message to a message broker still requires a synchronous invocation if we want to ensure that our message is sent. The overall availability of a system now depends on the health of the message broker instead of every subsystem which is easier to manage.
 
 \subsection{Asynchronous vs Synchronous Communication}
 
-Choosing a communication approach comes with various tradeoffs depending on what is required of a system. Decoupling subsystems through a messaging abstraction prevents failures in one subsystem from affecting other subsystems' ability to produce messages. As long as the broker is healthy, data can flow through the system without failures cascading up through the call chain.
+The approach to communication comes with various tradeoffs depending on what is required of a system. Decoupling subsystems through a messaging abstraction prevents failures in one subsystem from affecting other subsystems' ability to produce messages. As long as the broker is healthy, data can flow through the system without failures cascading up through the call chain.
 \newline
 \newline
 The downside is that failures are not propagated to the caller since the result of processing a message is decoupled, and thus the caller does not know the result of some downstream operation after completing a call. The two trade offs thus become whatever one wants to introduce latency or lose availability.
@@ -107,7 +107,7 @@ The downside is that failures are not propagated to the caller since the result 
 \vspace{15pt}
 
 If we make a RPC in a synchronous system, but a downstream dependency is unhealthy, our call gets rejected but we know it failed and can react to the failure.
-If we send an asynchronous message, but a downstream consumer is unhealthy, our message will be accepted, buffered and eventually processed but at the cost of a higher latency and less knowledge.
+If we send an asynchronous message, but a downstream consumer is unhealthy, our message will be accepted, buffered and eventually processed but at the cost of a higher latency and no knowledge of what happened.
 \newline
 \newline
 Having to make a tradeoff between availability and consistency when persisting replicated data is a property of the CAP theorem. This theorem says that distributed systems can be either available or consistent if a network issue occurs and subsystems are unable to communicate ( Partitioned network ). Systems have to be designed around this limitation and what properties are chosen depends on the requirements of the system.
@@ -141,7 +141,7 @@ Every message sent to Kafka is sent to a specific topic. Topics are contexts und
 
 \subsubsection{Message log}
 
-When a message is sent to a topic, it is persisted to one or several files in an append only manner. These files represent the queues in messaging systems. These files constitute the concept of queues in messaging systems. Records are written to the end of the file and read by specifying an offset from the start of the file. Message logs are persisted on disk but can be configured to be cleaned up after a time.
+When a message is sent to a topic, it is persisted to one or several files in an append only manner. These files constitute the concept of queues in messaging systems. Records are written to the end of the file and read by specifying an offset from the start of the file. Message logs are persisted on disk until they are cleaned up.
 
 
 \subsubsection{Partitions}
@@ -157,7 +157,7 @@ Each topic can be split into 1 or more partitions which each get a portion of th
 Producers are clients that produce and push records to Kafka.
 
 \subsubsection{Consumers}
-Consumers are clients that pull records from Kafka. Consumers pull records from partitions from certain offsets. Consumers can commit an offset by persisting the offset in the Kafka cluster. If a consumer is restarted, it can read the last committed offset and continue from that record. As long as the message log persists, consumers can reread the message logs as many times they want.
+Consumers are clients that pull records from Kafka. Consumers pull records from partitions from certain offsets. Consumers can commit an offset by persisting the offset in the Kafka cluster. If a consumer is restarted, it can read the last committed offset and continue from that record. As long as the message log persists, consumers can reread the message logs as many times as required.
 
 \subsubsection{Consumer groups}
 Consumer groups is a way of mapping N consumers to M partitions within a topic such that each message is only read by at most one consumer within the group. Consumers within a group read from the same topic but can read from multiple partitions.
@@ -202,28 +202,25 @@ If a single producer sends records to a partition, they will be written in the o
 
 \begin{figure}[htbp]
 \centerline{\includegraphics[scale=0.8]{assets/read.png}}
-\caption{Reading from a partition only guarantees order within the partition. Wrong configuration results in instructions getting parsed out of order.}
+\caption{Reading from a partition only guarantees order within the partition. Wrong configuration results in instructions getting pulled out of order by the consumer.}
 \label{fig}
 \end{figure}
 
 \subsection{Consumer guarantees}
 A consumer reading a partition will read the records in the order they were written within the partition.
-As long as one in-sync replica is alive, the consumer can pull records from a partition. If a consumer fails at some point after pulling a record, they can continue reading from the last commit once they are healthy. Consumers store their offset in the Kafka cluster.
+As long as one in-sync replica is alive, the consumer can pull records from a partition. If a consumer fails at some point after pulling a record, it can continue reading from the last commit offset once healthy. Consumers store their offset in the Kafka cluster.
 \newline
 \newline
-Pulling messages can have different outcomes depending on failures but there are three methods for consuming records that guarante they are processed to some degree.
+Pulling messages can have different outcomes depending on failures but there are three methods for consuming records that guarantee they are processed to some degree.
 
 \subsubsection{Processing at least once}
-If a message should be processed at least once, consumers can be configured to guarantee this as long as there are remaining insync replicas. Since a consumer will always read records from the last offset it committed. 
-\newline
-\newline
-The record from the last offset can be continuously read and attempted to process it until it succeds and can be commited. If the consumer process exits while processing a record, the last offset ensures that it will pick it up once again once healthy.
+If a message should be processed at least once, consumers can be configured to guarantee this as long as there are remaining insync replicas to pull from. Since a consumer will always read records from the last offset it committed, the record from the last offset can be continuously read and attempted to process it until it succeeds and can be committed. If a consumer process exits while processing a record, the last offset ensures that it will pick up the last unprocessed record again once healthy.
 
 \subsubsection{Processing at most once}
-If a record can't be processed more than once but it's ok if it's lost, the offset can be commited directly after reading a record but before processing it. In this case, the record will only be processed after it's commited ensuring its not processed twice.
+If a record can't be processed more than once but it's ok if it's lost, the offset can be committed directly after reading a record but before processing it. In this case, the record will only be processed after it's committed, ensuring it's not processed twice.
 
 \subsubsection{Processing exactly once}
-Ensuring that a record is only processed once can be achived using only Kafka, but introduces coupling and reduced performance. Traditional way of exactly once processing requires an additional transactional system to achieve idempotency. Every time a record is produced, the producer includes a unique key. When the record is fetched, the key is used as a idempotency key to detect if a record has been processed already. The storing and processing of a record should happen in a transaction.
+Ensuring that a record is only processed once can be achieved using only Kafka, but introduces coupling and reduced performance. Traditional way of exactly once processing requires an additional transactional system to achieve idempotency. Every time a record is produced, the producer includes a unique key. When the record is fetched, the key is used as an idempotency key to detect if a record has been processed already. 
 
 \clearpage
 \section{Delivery guarantees Code examples}
@@ -238,11 +235,12 @@ Consumers will consume one record at a time. Code can be applied to more partiti
 	\item docker-compose version: 1.25.5
 	\item kafka-image: confluentinc/cp-kafka:5.3.0
 	\item zookeper-image: zookeeper:3.4.9
+	\item postgres:latest
 	\item{OS Linux 5.4.0-80-generic 90-Ubuntu x86\_64 GNU/Linux}
 \end{itemize}
 
 \subsection{Sending a record}
-The code for sending a record will be the same across all examples. In this example we are setting ack mode to 'all' to ensure the system consistency. The program takes an argument from the terminal as a message.
+The program takes an argument from the terminal as a message.
 \newline
 \begin{adjustwidth}{-30pt}{0pt}
 \begin{Verbatim}
@@ -295,7 +293,7 @@ else:
 \end{adjustwidth}
 
 \clearpage
-\subsection{At most once}
+\subsection{At Most Once}
 At most once is similar to the "at least once" implementation except we commit the offset before we process.
 \newline
 \begin{adjustwidth}{-30pt}{0pt}
@@ -315,7 +313,7 @@ result = consumer.poll(timeout_ms=3000,
                      update_offsets=False)
 
 if result and  result[partition]:
-  record = reuslt[partition][0]
+  record = result[partition][0]
   next_offset = record.offset + 1
   consumer.commit({
               partition: OffsetAndMetadata(next_offset, None)
@@ -328,9 +326,9 @@ else:
 \end{Verbatim}
 \end{adjustwidth}
 \clearpage
-\subsection{Exactly-once}
+\subsection{Exactly Once}
 
-Exactly once requires both the producer to produce at least one record but also the consumer to process it exactly once.  Doing this requires us to both persist the record in a transaction, skipping and commiting the offset. If we fail at any point while persisting, we will rollback the side effects and nothing will be committed. Using a database we can we can ensure to de-deuplicate any duplicate messages.
+Exactly once requires both the producer to produce at least one record but also the consumer to process it exactly once.  Doing this requires us to both persist the record in a transaction, skipping and committing the offset. If we fail at any point while persisting, we will rollback the side effects and nothing will be committed. Using a database we can ensure to de-duplicate any duplicate messages.
 \newline
 \begin{adjustwidth}{-30pt}{0pt}
 \begin{Verbatim}
@@ -544,6 +542,8 @@ services:
 \end{appendices}
 
 \end{document}
+
+
 
 
 
